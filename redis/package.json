@@ -3,7 +3,7 @@
     "redis": "^4.0.1"
   },
   "scripts": {
-    "users": "ts-node users.ts"
+    "initData": "ts-node initData.ts"
   },
   "devDependencies": {
     "@types/node": "^17.0.0",
