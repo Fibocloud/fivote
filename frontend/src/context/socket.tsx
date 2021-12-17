@@ -2,32 +2,34 @@ import { createContext, useState, useEffect, useContext } from "react";
 import { SOCKET_URL } from "config/default";
 import EVENTS from "config/events";
 import { Socket, io } from "socket.io-client";
-import { IMessage } from "interface";
+import { ITeam, IUser } from "interface";
 
 const socket = io(SOCKET_URL);
 
+interface ICurrentVote {
+  team: ITeam;
+  users: IUser[];
+}
 interface Context {
   socket: Socket;
-  messages: IMessage[];
+  currentVotes: ICurrentVote[];
 }
 
 const SocketContext = createContext<Context>({
   socket,
-  messages: [],
+  currentVotes: [],
 });
 
 const SocketProvider = (props: any) => {
-  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [currentVotes, setCurrentVotes] = useState<ICurrentVote[]>([]);
 
   useEffect(() => {
-    socket.on(EVENTS.SERVER.SEND_MESSAGES, (msgs: IMessage[]) =>
-      setMessages(msgs)
-    );
+    socket.emit(EVENTS.CLIENT.CURRENT_VOTES);
   }, []);
 
   useEffect(() => {
-    socket.on(EVENTS.SERVER.SEND_MESSAGES, (msgs: IMessage[]) =>
-      setMessages(msgs)
+    socket.on(EVENTS.SERVER.CURRENT_VOTES, (resp: ICurrentVote[]) =>
+      setCurrentVotes(resp)
     );
   }, [socket]);
 
@@ -35,7 +37,7 @@ const SocketProvider = (props: any) => {
     <SocketContext.Provider
       value={{
         socket,
-        messages,
+        currentVotes,
       }}
       {...props}
     />
