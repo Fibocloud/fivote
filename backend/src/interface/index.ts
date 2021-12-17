@@ -1,4 +1,12 @@
-export interface IMessage {
+export interface IUser {
   username: string;
-  message: string;
+  image: string;
+  password: string;
+  whichTeam: string;
+  votedTeam: string;
+}
+
+export interface ITeam {
+  name: string;
+  image: string;
 }
