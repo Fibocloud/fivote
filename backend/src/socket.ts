@@ -18,7 +18,61 @@ const socket = ({ io, client }: { io: Server; client: any }) => {
         socket.emit(EVENTS.SERVER.CURRENT_VOTES, data);
       })();
     });
+
+    socket.on(EVENTS.CLIENT.CHECK_AUTH, ({ user }: { user: Partial<IUser> }) => {
+      (async () => {
+        const data = await checkLogin(user, client);
+        socket.emit(EVENTS.SERVER.AUTH_RESPONSE, data);
+      })();
+    });
+    socket.on(EVENTS.CLIENT.WHOAMI, ({ user }: { user: Partial<IUser> }) => {
+      (async () => {
+        const data = await checkToken(user, client);
+        socket.emit(EVENTS.SERVER.WHOAMI_RESP, data);
+      })();
+    });
   });
+};
+
+const checkToken = async (user: Partial<IUser>, client: any): Promise<{ status: boolean; data?: any }> => {
+  const record = await client.get(`user_${user.name}`);
+  if (record) {
+    const userData = JSON.parse(record);
+    if (userData.session === user.session) {
+      return {
+        status: true,
+        data: userData,
+      };
+    }
+  }
+  return {
+    status: false,
+  };
+};
+
+const checkLogin = async (
+  user: Partial<IUser>,
+  client: any,
+): Promise<{ status: boolean; token: string; name: string }> => {
+  const record = await client.get(`user_${user.name}`);
+  if (record) {
+    const userData = JSON.parse(record);
+    if (userData.password === user.password) {
+      const session = '_' + Math.random().toString(36).substr(2, 9);
+      userData.session = session;
+      await client.set(`user_${user.name}`, JSON.stringify(userData));
+      return {
+        status: true,
+        token: session,
+        name: userData.name,
+      };
+    }
+  }
+  return {
+    status: false,
+    token: '',
+    name: '',
+  };
 };
 
 const voteTeam = async (user: Partial<IUser>, team: string, client: any) => {

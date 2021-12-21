@@ -1,7 +1,8 @@
 import { useSockets } from "context/socket";
 import { NextPage } from "next";
 import React from "react";
-import { TextField } from "@mui/material";
+import { IUser } from "interface";
+import { TextField, Button } from "@mui/material";
 import EVENTS from "config/events";
 
 interface Props {}
@@ -9,6 +10,13 @@ interface Props {}
 const Index: NextPage<Props> = ({}): React.ReactElement => {
   const { socket, currentVotes } = useSockets();
   const [name, setName] = React.useState<string>("");
+  const [user, setUser] = React.useState<IUser>({
+    name: "",
+    image: "",
+    password: "",
+    whichTeam: "",
+    votedTeam: "",
+  });
 
   const onSubmit = (val: string) => {
     socket.emit(EVENTS.CLIENT.VOTE_TEAM, {
@@ -16,6 +24,15 @@ const Index: NextPage<Props> = ({}): React.ReactElement => {
         name,
       },
       team: val,
+    });
+  };
+
+  const handleLogin = () => {
+    socket.emit(EVENTS.CLIENT.CHECK_AUTH, {
+      user: {
+        name: user.name,
+        password: user.password,
+      },
     });
   };
 
@@ -67,14 +84,24 @@ const Index: NextPage<Props> = ({}): React.ReactElement => {
           GOT
         </div> */}
       </div>
-      <div className="p-20">
+      <div className="flex gap-4 p-20">
         <TextField
           placeholder="Username"
           label="Username"
           size="small"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={user.name}
+          onChange={(e) => setUser({ ...user, name: e.target.value })}
         />
+        <TextField
+          placeholder="Password"
+          label="Password"
+          size="small"
+          value={user.password}
+          onChange={(e) => setUser({ ...user, password: e.target.value })}
+        />
+        <Button variant="contained" onClick={() => handleLogin()}>
+          Submit
+        </Button>
       </div>
     </div>
   );
