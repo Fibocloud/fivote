@@ -9,6 +9,7 @@ const socket = ({ io, client }: { io: Server; client: any }) => {
       (async () => {
         const data = await currentVote(client);
         socket.emit(EVENTS.SERVER.CURRENT_VOTES, data);
+        socket.broadcast.emit(EVENTS.SERVER.CURRENT_VOTES, data);
       })();
     });
 
@@ -16,6 +17,13 @@ const socket = ({ io, client }: { io: Server; client: any }) => {
       (async () => {
         const data = await currentVote(client);
         socket.emit(EVENTS.SERVER.CURRENT_VOTES, data);
+      })();
+    });
+
+    socket.on(EVENTS.CLIENT.TOTAL_USERS, () => {
+      (async () => {
+        const data = await totalUsers(client);
+        socket.emit(EVENTS.SERVER.TOTAL_USERS_RESP, data);
       })();
     });
 
@@ -32,6 +40,22 @@ const socket = ({ io, client }: { io: Server; client: any }) => {
       })();
     });
   });
+};
+
+const totalUsers = async (client: any) => {
+  const userKeys = await client.keys('user_*');
+  const resp: IUser[] = [];
+
+  await Promise.all(
+    userKeys.map(async (key: string) => {
+      const record = await client.get(key);
+      const userData = JSON.parse(record);
+      resp.push(userData);
+    }),
+  );
+
+  console.log('returing', resp);
+  return resp;
 };
 
 const checkToken = async (user: Partial<IUser>, client: any): Promise<{ status: boolean; data?: any }> => {
@@ -115,32 +139,5 @@ const currentVote = async (client: any) => {
   );
   return resp;
 };
-
-// const saveMessage = async (message: IMessage, client: any) => {
-//   await client.set(
-//     `user_${message.username}`,
-//     JSON.stringify({
-//       votedTeam: 'votedTeam',
-//       whichTeam: 'teamID',
-//       password: 'password',
-//       image: 'default_image',
-//       bio: message.message,
-//     }),
-//   );
-// };
-
-// const getMessages = async (client: any) => {
-//   const resp: IMessage[] = [];
-//   const users = await client.keys('user_*');
-//   for (let i = 0; i < users.length; i++) {
-//     const user = users[i];
-//     const message = await client.get(user);
-//     resp.push({
-//       username: user.replace('user_', ''),
-//       message,
-//     });
-//   }
-//   return resp;
-// };
 
 export default socket;

@@ -16,20 +16,26 @@ interface Context {
   socket: Socket;
   currentVotes: ICurrentVote[];
   currentUser: IUser;
+  setCurrentUser: (user: IUser) => void;
+  updateUser: () => void;
+  totalUsers: number;
 }
 
 const SocketContext = createContext<Context>({
   socket,
   currentVotes: [],
   currentUser: {} as IUser,
+  setCurrentUser: () => {},
+  updateUser: () => {},
+  totalUsers: 0,
 });
 
 const SocketProvider = (props: any) => {
   const [currentVotes, setCurrentVotes] = useState<ICurrentVote[]>([]);
   const [currentUser, setCurrentUser] = useState<IUser>({} as IUser);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
 
-  useEffect(() => {
-    socket.emit(EVENTS.CLIENT.CURRENT_VOTES);
+  const updateUser = () => {
     const token = cookie.get("token");
     const name = cookie.get("name");
     if (token && name) {
@@ -40,16 +46,26 @@ const SocketProvider = (props: any) => {
         },
       });
     }
+  };
+
+  useEffect(() => {
+    socket.emit(EVENTS.CLIENT.CURRENT_VOTES);
+    socket.emit(EVENTS.CLIENT.TOTAL_USERS);
+    updateUser();
   }, []);
 
   useEffect(() => {
-    socket.on(EVENTS.SERVER.CURRENT_VOTES, (resp: ICurrentVote[]) =>
-      setCurrentVotes(resp)
-    );
+    socket.on(EVENTS.SERVER.CURRENT_VOTES, (resp: ICurrentVote[]) => {
+      console.log("vote", typeof resp);
+      setCurrentVotes(resp);
+    });
     socket.on(EVENTS.SERVER.WHOAMI_RESP, (resp) => {
       if (resp.status) {
         setCurrentUser(resp.data);
       }
+    });
+    socket.on(EVENTS.SERVER.TOTAL_USERS_RESP, (resp: IUser[]) => {
+      setTotalUsers(resp.length);
     });
     socket.on(EVENTS.SERVER.AUTH_RESPONSE, (resp) => {
       if (resp.status) {
@@ -58,6 +74,12 @@ const SocketProvider = (props: any) => {
         });
         cookie.set("name", resp.name, {
           path: "/",
+        });
+        socket.emit(EVENTS.CLIENT.WHOAMI, {
+          user: {
+            name: resp.name,
+            session: resp.token,
+          },
         });
       }
     });
@@ -69,6 +91,9 @@ const SocketProvider = (props: any) => {
         socket,
         currentVotes,
         currentUser,
+        setCurrentUser,
+        updateUser,
+        totalUsers,
       }}
       {...props}
     />
